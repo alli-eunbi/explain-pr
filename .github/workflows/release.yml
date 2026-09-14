@@ -40,7 +40,7 @@ jobs:
           node /tmp/unpacked/explain-pr/skills/explain-pr/scripts/validate-skill.mjs /tmp/unpacked/explain-pr/skills/explain-pr
           node /tmp/unpacked/explain-pr/skills/explain-pr/scripts/explain-pr.mjs demo /tmp/unpacked/demo.html --3d --lang en
       - name: Create the GitHub Release with the archive attached
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: ${{ runner.temp }}/explain-pr.zip
           generate_release_notes: true
