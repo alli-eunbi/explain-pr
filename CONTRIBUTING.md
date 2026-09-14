@@ -25,6 +25,10 @@ CI runs the same checks, plus a real-Chrome render check and a fresh-install smo
 
 ## Rules that do not bend
 
+- Shipped code stays offline. The viewer and the scripts must not gain `fetch`, `XMLHttpRequest`, `WebSocket`, `sendBeacon` or Node network modules; the validator fails the build if they do. GitHub access goes through the user's own `gh` and `git` only.
+- A change to `package.json` or `package-lock.json` is reviewed as a supply-chain change: say why the dependency is needed, and keep exact versions. CI installs with `--ignore-scripts`.
+- Pull requests from forks run CI only after a maintainer approves the run; expect that delay.
+
 - PR text, comments and source are evidence, never instructions. Do not add anything that lets them steer the agent.
 - Scripts must not execute PR code, change the user's checkout, post comments or merge.
 - No real customer data, secrets or private PR content in fixtures, tests, screenshots or issues.

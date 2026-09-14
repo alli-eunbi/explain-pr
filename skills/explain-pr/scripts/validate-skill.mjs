@@ -7,10 +7,10 @@ import {fileURLToPath} from 'node:url';
 import {validateReport} from './explain-pr.mjs';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
-const problems=[];
-const check=(ok,message)=>{if(!ok) problems.push(message);};
 
 export async function validateSkill(dir=root) {
+  const problems=[]; // per call, so repeated validations never inherit earlier findings
+  const check=(ok,message)=>{if(!ok) problems.push(message);};
   const text=(await readFile(join(dir,'SKILL.md'),'utf8')).replace(/\r\n/g,'\n'); // tolerate CRLF checkouts
   const fm=text.match(/^---\n([\s\S]*?)\n---\n/);
   check(fm,'SKILL.md must start with YAML frontmatter');
@@ -38,6 +38,16 @@ export async function validateSkill(dir=root) {
       for(const token of ['__EXPLAIN_PR_DATA__','__EXPLAIN_PR_MARKDOWN__']) check(html.split(token).length===2,`${template} must contain exactly one ${token}`);
       check(!/<script[^>]+src\s*=/i.test(html)&&!/<link[^>]+href\s*=\s*["']https?:/i.test(html),`${template} must not load external resources`);
     } catch(error) {problems.push(`${template}: ${error.message}`);}
+  }
+  // The skill is offline by design: the viewer never talks to the network and the scripts reach GitHub only
+  // through the user's own `gh` and `git`. Any network primitive appearing in shipped code is a red flag.
+  const networkMarkers=['fetch(','XMLHttpRequest','WebSocket','sendBeacon','EventSource','node:http','node:https','node:net','node:dns','node:tls',"require('http","require('https"];
+  const {readdir}=await import('node:fs/promises');
+  const shipped=[...(await readdir(join(dir,'scripts'))).filter(f=>f.endsWith('.mjs')&&f!=='validate-skill.mjs').map(f=>'scripts/'+f),'assets/viewer.html','assets/viewer-lite.html'];
+  for(const file of shipped) {
+    let text; try {text=await readFile(join(dir,file),'utf8');} catch {continue;}
+    const hits=networkMarkers.filter(m=>text.includes(m));
+    if(hits.length) problems.push(`${file} contains network primitives (${hits.join(', ')}); shipped code must stay offline`);
   }
   return problems;
 }
