@@ -36,7 +36,7 @@ function mount() {
 }
 
 test('rendered demo and supplied PR preserve every node outcome and condition using original inspection IDs', async () => {
-  const reports = [JSON.parse(await readFile(new URL('../examples/demo.json', import.meta.url), 'utf8'))];
+  const reports = [JSON.parse(await readFile(new URL('../skills/explain-pr/examples/demo.json', import.meta.url), 'utf8'))];
   if (process.env.EXPLAIN_PR_TEST_REPORT) reports.push(JSON.parse(await readFile(process.env.EXPLAIN_PR_TEST_REPORT, 'utf8')));
   const { container, inspected, view } = mount();
   for (const flow of reports.flatMap(report => report.flows)) {

@@ -7,8 +7,8 @@ Small, focused changes are easiest to review. One behavior per pull request.
 ```bash
 npm ci
 npm test                                            # node --test, 70+ tests
-EXPLAIN_PR_SKIP_DIRNAME=1 node scripts/validate-skill.mjs
-npm run build                                       # only if you touched src/; commit assets/viewer*.html
+node skills/explain-pr/scripts/validate-skill.mjs skills/explain-pr
+npm run build                                       # only if you touched src/; commit skills/explain-pr/assets/viewer*.html
 ```
 
 CI runs the same checks, plus a real-Chrome render check and a fresh-install smoke test on Linux, macOS and Windows. A PR cannot merge while any of them fail.
@@ -17,10 +17,10 @@ CI runs the same checks, plus a real-Chrome render check and a fresh-install smo
 
 | Change | Where | Evidence to include |
 |---|---|---|
-| Agent instructions | `SKILL.md`, `references/` | Which step changes and why; ideally one real PR run showing the new behavior |
-| Report contract | `references/report-contract.md` + `scripts/explain-pr.mjs` validator | A test in `tests/cli.test.mjs`; keep `examples/*.json` valid |
-| Scripts (collect, source, verify) | `scripts/` | Tests; never print source contents or secrets in errors |
-| Viewer | `src/` → `npm run build` | Rebuilt `assets/`, a screenshot, and `node scripts/check-rendered.mjs` output |
+| Agent instructions | `skills/explain-pr/SKILL.md`, `skills/explain-pr/references/` | Which step changes and why; ideally one real PR run showing the new behavior |
+| Report contract | `skills/explain-pr/references/report-contract.md` + `skills/explain-pr/scripts/explain-pr.mjs` validator | A test in `tests/cli.test.mjs`; keep `examples/*.json` valid |
+| Scripts (collect, source, verify) | `skills/explain-pr/scripts/` | Tests; never print source contents or secrets in errors |
+| Viewer | `src/` → `npm run build` | Rebuilt `skills/explain-pr/assets/`, a screenshot, and `node skills/explain-pr/scripts/check-rendered.mjs` output |
 | UI text | `src/i18n.js` (ko and en together) | Both languages updated |
 
 ## Rules that do not bend

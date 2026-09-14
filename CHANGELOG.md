@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.2.0 — 2026-09-14
+
+- Repository is now a plugin for both Claude Code and Codex: the skill lives in `skills/explain-pr/`, with `.claude-plugin/` and `.codex-plugin/` manifests at the root and marketplace files for each (`.claude-plugin/marketplace.json`, `.agents/plugins/marketplace.json`).
+- Plain-skill installs (git clone) now link `skills/explain-pr` into the agent's skills folder; see README.
+- Viewer build moved to `tools/build-viewer.mjs`; plugin icon and logo in `assets/`.
+
 ## 2.1.0 — 2026-09-14
 
 - English sample report (`examples/demo.en.json`, used by `demo --lang en`); README screenshots are English.

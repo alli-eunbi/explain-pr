@@ -24,21 +24,21 @@ jobs:
           pkg="$(node -p "require('./package.json').version")"; tag="${GITHUB_REF_NAME#v}"
           [ "$pkg" = "$tag" ] || { echo "::error::tag v$tag does not match package.json version $pkg"; exit 1; }
       - name: Committed viewer templates must match the source
-        run: npm run build && git diff --stat --exit-code assets/
+        run: npm run build && git diff --stat --exit-code skills/explain-pr/assets/
       - name: Build the skill archive (runtime files only, deterministic order and timestamps)
         run: |
           rm -rf /tmp/pkg && mkdir -p /tmp/pkg/explain-pr
-          cp -R SKILL.md README.md LICENSE references scripts assets examples agents /tmp/pkg/explain-pr/
-          mkdir -p /tmp/pkg/explain-pr/.claude-plugin && cp .claude-plugin/plugin.json /tmp/pkg/explain-pr/.claude-plugin/   # the archive also works with: claude --plugin-dir explain-pr.zip
-          rm -f /tmp/pkg/explain-pr/scripts/build-viewer.mjs
+          cp -R README.md LICENSE skills assets /tmp/pkg/explain-pr/
+          mkdir -p /tmp/pkg/explain-pr/.claude-plugin /tmp/pkg/explain-pr/.codex-plugin
+          cp .claude-plugin/plugin.json /tmp/pkg/explain-pr/.claude-plugin/ && cp .codex-plugin/plugin.json /tmp/pkg/explain-pr/.codex-plugin/   # the archive is a Claude Code plugin (--plugin-dir) and a Codex plugin
           find /tmp/pkg -exec touch -t 200001010000 {} +
           (cd /tmp/pkg && find explain-pr -type f | LC_ALL=C sort | zip -X -q -@ "$RUNNER_TEMP/explain-pr.zip")
           unzip -l "$RUNNER_TEMP/explain-pr.zip" | tail -1
       - name: Validate the archive the way a user receives it (no npm)
         run: |
           rm -rf /tmp/unpacked && mkdir /tmp/unpacked && unzip -q "$RUNNER_TEMP/explain-pr.zip" -d /tmp/unpacked
-          node /tmp/unpacked/explain-pr/scripts/validate-skill.mjs /tmp/unpacked/explain-pr
-          node /tmp/unpacked/explain-pr/scripts/explain-pr.mjs demo /tmp/unpacked/demo.html --3d --lang en
+          node /tmp/unpacked/explain-pr/skills/explain-pr/scripts/validate-skill.mjs /tmp/unpacked/explain-pr/skills/explain-pr
+          node /tmp/unpacked/explain-pr/skills/explain-pr/scripts/explain-pr.mjs demo /tmp/unpacked/demo.html --3d --lang en
       - name: Create the GitHub Release with the archive attached
         uses: softprops/action-gh-release@v2
         with:

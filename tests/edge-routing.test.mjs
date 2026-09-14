@@ -22,7 +22,7 @@ test('a skipped platform is routed around with explicit source and destination p
 });
 test('every authored demo edge has a clear routed path and its own condition anchor',async()=>{
   assert.ok(routing);
-  const report=JSON.parse(await readFile(new URL('../examples/demo.json',import.meta.url),'utf8'));
+  const report=JSON.parse(await readFile(new URL('../skills/explain-pr/examples/demo.json',import.meta.url),'utf8'));
   for(const flow of report.flows){
     const {positions:placed}=layout(flow),results=routing.routeEdges(flow.edges,placed);
     assert.equal(results.length,flow.edges.length);
