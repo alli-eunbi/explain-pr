@@ -29,6 +29,7 @@ jobs:
         run: |
           rm -rf /tmp/pkg && mkdir -p /tmp/pkg/explain-pr
           cp -R SKILL.md README.md LICENSE references scripts assets examples agents /tmp/pkg/explain-pr/
+          mkdir -p /tmp/pkg/explain-pr/.claude-plugin && cp .claude-plugin/plugin.json /tmp/pkg/explain-pr/.claude-plugin/   # the archive also works with: claude --plugin-dir explain-pr.zip
           rm -f /tmp/pkg/explain-pr/scripts/build-viewer.mjs
           find /tmp/pkg -exec touch -t 200001010000 {} +
           (cd /tmp/pkg && find explain-pr -type f | LC_ALL=C sort | zip -X -q -@ "$RUNNER_TEMP/explain-pr.zip")

@@ -2,6 +2,7 @@
 
 ## 2.1.0 — 2026-09-14
 
+- Installable as a Claude Code plugin: this repository is its own marketplace (`/plugin marketplace add alli-eunbi/explain-pr`, `/plugin install explain-pr@explain-pr`).
 - Lite viewer (flowchart only, ~50 KB) is the default; `with 3d` renders the full viewer with the 3D follow mode.
 - English UI: viewer strings follow the report's `lang` (`ko`/`en`); `render --lang` is embedded into the data.
 - `source` subcommand reads numbered line ranges at the pinned commit; `collect` splits the diff per file with a coverage budget and cross-checks counts against PR metadata.

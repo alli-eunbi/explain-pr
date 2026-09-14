@@ -1,0 +1,20 @@
+{
+  "name": "explain-pr",
+  "owner": { "name": "alli-eunbi", "url": "https://github.com/alli-eunbi" },
+  "description": "explain-pr: a source-backed PR walkthrough skill for Claude Code",
+  "plugins": [
+    {
+      "name": "explain-pr",
+      "displayName": "Explain PR",
+      "source": "./",
+      "version": "2.1.0",
+      "description": "Explain a GitHub pull request as a source-backed walkthrough: execution-ordered flowchart, optional 3D follow mode, every step pinned to file/line evidence.",
+      "author": { "name": "alli-eunbi" },
+      "homepage": "https://github.com/alli-eunbi/explain-pr",
+      "repository": "https://github.com/alli-eunbi/explain-pr",
+      "license": "MIT",
+      "category": "development",
+      "keywords": ["pull-request", "code-review", "walkthrough", "github"]
+    }
+  ]
+}

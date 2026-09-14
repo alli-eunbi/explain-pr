@@ -126,3 +126,23 @@ jobs:
           test -f "$RUNNER_TEMP/demo-3d.md"
       - name: Installed skill validates in place (name matches directory)
         run: node "$HOME/.claude/skills/explain-pr/scripts/validate-skill.mjs" "$HOME/.claude/skills/explain-pr"
+
+  plugin:
+    name: Installs as a Claude Code plugin
+    runs-on: ubuntu-latest
+    needs: [validate]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+      - name: Validate plugin and marketplace manifests
+        run: claude plugin validate .
+      - name: Add this repository as a marketplace and install the plugin
+        run: |
+          claude plugin marketplace add ./
+          claude plugin install explain-pr@explain-pr --scope user
+          claude plugin list | grep -A2 'explain-pr@explain-pr'
+          claude plugin details explain-pr@explain-pr | grep -E 'Skills \(1\)'

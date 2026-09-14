@@ -22,18 +22,26 @@ It does not replace code review or a merge decision. Its only job is to make "wh
 
 ## Quick start
 
+**Claude Code** (plugin marketplace):
+
+```
+/plugin marketplace add alli-eunbi/explain-pr
+/plugin install explain-pr@explain-pr
+```
+
+Then:
+
+```
+/explain-pr:explain-pr https://github.com/<owner>/<repo>/pull/<N>
+```
+
+Plugin skills are namespaced, so the command is `/explain-pr:explain-pr`; natural language ("walk me through this PR") triggers it without the prefix.
+
+**Codex**, or Claude Code without the plugin system:
+
 ```bash
-# Claude Code
-git clone git@github.com:alli-eunbi/explain-pr.git ~/.claude/skills/explain-pr
-
-# Codex
-git clone git@github.com:alli-eunbi/explain-pr.git ~/.agents/skills/explain-pr
-```
-
-Then, in your agent:
-
-```
-/explain-pr https://github.com/<owner>/<repo>/pull/<N>
+git clone git@github.com:alli-eunbi/explain-pr.git ~/.agents/skills/explain-pr    # Codex
+git clone git@github.com:alli-eunbi/explain-pr.git ~/.claude/skills/explain-pr    # Claude Code, plain skill: /explain-pr
 ```
 
 Other ways to install:
@@ -44,7 +52,7 @@ Other ways to install:
 | `skills` CLI | `npx skills add alli-eunbi/explain-pr -g` |
 | Both agents | Clone once and symlink the other location |
 
-Update with `git pull` in the skill folder, or replace the unzipped folder with the next release.
+Plugin installs update through `/plugin marketplace update explain-pr`; git installs with `git pull`; archive installs by replacing the folder with the next release.
 
 **Requirements**
 
