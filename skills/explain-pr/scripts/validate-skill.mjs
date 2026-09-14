@@ -39,6 +39,16 @@ export async function validateSkill(dir=root) {
       check(!/<script[^>]+src\s*=/i.test(html)&&!/<link[^>]+href\s*=\s*["']https?:/i.test(html),`${template} must not load external resources`);
     } catch(error) {problems.push(`${template}: ${error.message}`);}
   }
+  // The skill is offline by design: the viewer never talks to the network and the scripts reach GitHub only
+  // through the user's own `gh` and `git`. Any network primitive appearing in shipped code is a red flag.
+  const networkMarkers=['fetch(','XMLHttpRequest','WebSocket','sendBeacon','EventSource','node:http','node:https','node:net','node:dns','node:tls',"require('http","require('https"];
+  const {readdir}=await import('node:fs/promises');
+  const shipped=[...(await readdir(join(dir,'scripts'))).filter(f=>f.endsWith('.mjs')&&f!=='validate-skill.mjs').map(f=>'scripts/'+f),'assets/viewer.html','assets/viewer-lite.html'];
+  for(const file of shipped) {
+    let text; try {text=await readFile(join(dir,file),'utf8');} catch {continue;}
+    const hits=networkMarkers.filter(m=>text.includes(m));
+    if(hits.length) problems.push(`${file} contains network primitives (${hits.join(', ')}); shipped code must stay offline`);
+  }
   return problems;
 }
 

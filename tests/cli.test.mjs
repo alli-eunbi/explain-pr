@@ -257,3 +257,13 @@ test('demo --lang en uses the English sample report', async () => {
     assert.ok((await readFile(join(dir,'ko.html'),'utf8')).includes('\uad6c\ub3c5 \uac31\uc2e0 \ub85c\uc9c1 \ubcc0\uacbd'));
   } finally {await rm(dir,{recursive:true,force:true});}
 });
+test('validate-skill rejects network primitives in shipped viewer or scripts', async () => {
+  const {validateSkill}=await import('../skills/explain-pr/scripts/validate-skill.mjs');
+  const root=fileURLToPath(new URL('../skills/explain-pr/',import.meta.url)), dir=await mkdtemp(join(tmpdir(),'explain-net-'));
+  try {
+    const {cp}=await import('node:fs/promises'); await cp(root,dir,{recursive:true});
+    assert.deepEqual(await validateSkill(dir),[]);
+    await writeFile(join(dir,'assets/viewer-lite.html'),(await readFile(join(dir,'assets/viewer-lite.html'),'utf8')).replace('</body>','<script>fetch("https://x")</script></body>'));
+    const problems=await validateSkill(dir); assert.ok(problems.some(p=>/viewer-lite\.html contains network primitives \(fetch\(\)/.test(p)),JSON.stringify(problems));
+  } finally {await rm(dir,{recursive:true,force:true});}
+});
