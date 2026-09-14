@@ -1,0 +1,521 @@
+{
+  "version": 1,
+  "sample": true,
+  "pr": {
+    "url": "https://github.com/acme/billing/pull/248",
+    "title": "구독 갱신 로직 변경",
+    "repo": "acme/billing",
+    "number": 248,
+    "base": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "summary": "갱신 결제를 먼저 처리한 뒤, 성공한 구독의 만료일을 연장합니다.",
+  "limitations": [
+    "가상의 PR과 코드로 만든 인터랙션 데모입니다. 실제 서비스에 대한 검토 결과가 아닙니다.",
+    "3D 이동과 상태 표시는 설명용이며 실제 요청이나 결제를 실행하지 않습니다."
+  ],
+  "tests": {
+    "status": "not-run",
+    "note": "예시 데이터입니다. 실제 저장소의 테스트는 실행하지 않았습니다."
+  },
+  "flows": [
+    {
+      "id": "renewal",
+      "title": "구독 갱신",
+      "status": "partial",
+      "entry": "request",
+      "summary": "결제부터 저장까지, 한 단계씩 따라가세요.",
+      "nodes": [
+        {
+          "id": "request",
+          "title": "갱신 요청",
+          "description": "구독 ID로 갱신 요청을 받습니다.",
+          "changed": false,
+          "input": "구독 ID",
+          "output": "갱신 요청",
+          "state": [
+            {
+              "name": "구독 상태",
+              "value": "활성"
+            },
+            {
+              "name": "결제",
+              "value": "처리 전"
+            },
+            {
+              "name": "만료일",
+              "value": "기존 만료일"
+            }
+          ],
+          "sources": [
+            {
+              "path": "src/renewal.ts",
+              "side": "head",
+              "start": 24,
+              "end": 27,
+              "excerpt": "async function renew(subscriptionId) {\n  const subscription = await load(subscriptionId);"
+            }
+          ],
+          "before": "",
+          "after": ""
+        },
+        {
+          "id": "check",
+          "title": "상태 확인",
+          "description": "활성 상태이며 갱신 시점이 되었는지 확인합니다.",
+          "changed": false,
+          "input": "구독 정보",
+          "output": "갱신 가능 여부",
+          "state": [
+            {
+              "name": "구독 상태",
+              "value": "활성"
+            },
+            {
+              "name": "결제",
+              "value": "처리 전"
+            },
+            {
+              "name": "만료일",
+              "value": "기존 만료일"
+            }
+          ],
+          "sources": [
+            {
+              "path": "src/renewal.ts",
+              "side": "head",
+              "start": 34,
+              "end": 39,
+              "excerpt": "if (!canRenew(subscription)) return;"
+            }
+          ],
+          "before": "",
+          "after": ""
+        },
+        {
+          "id": "charge",
+          "title": "결제 실행",
+          "description": "외부 결제를 요청합니다. 성공하면 만료일 저장으로 이동합니다.",
+          "changed": true,
+          "input": "구독 정보 · 결제 요청",
+          "output": "결제 결과",
+          "state": [
+            {
+              "name": "구독 상태",
+              "value": "활성"
+            },
+            {
+              "name": "결제",
+              "value": "요청 중"
+            },
+            {
+              "name": "만료일",
+              "value": "기존 만료일"
+            }
+          ],
+          "sources": [
+            {
+              "path": "src/renewal.ts",
+              "side": "head",
+              "start": 46,
+              "end": 50,
+              "excerpt": "try {\n  await charge(subscription);\n} catch (error) {\n  return paymentFailed(error);\n}"
+            }
+          ],
+          "before": "만료일을 연장한 뒤 결제를 요청했습니다.",
+          "after": "결제를 먼저 요청한 뒤 만료일을 연장합니다."
+        },
+        {
+          "id": "save",
+          "title": "만료일 저장",
+          "description": "결제가 성공하면 다음 만료일을 계산하고 저장합니다.",
+          "changed": true,
+          "input": "결제 성공 · 기존 만료일",
+          "output": "새 만료일",
+          "state": [
+            {
+              "name": "구독 상태",
+              "value": "활성"
+            },
+            {
+              "name": "결제",
+              "value": "완료"
+            },
+            {
+              "name": "만료일",
+              "value": "저장 전"
+            }
+          ],
+          "sources": [
+            {
+              "path": "src/renewal.ts",
+              "side": "head",
+              "start": 54,
+              "end": 59,
+              "excerpt": "const expiresAt = nextExpiry(subscription);\ntry {\n  await saveExpiry(expiresAt);\n} catch (error) {\n  return storageFailed(error);\n}"
+            }
+          ],
+          "before": "결제 전에 만료일을 저장했습니다.",
+          "after": "결제 성공 후에 만료일을 저장합니다."
+        },
+        {
+          "id": "result",
+          "title": "결과 반환",
+          "description": "새 만료일이 반영된 구독 정보를 반환합니다.",
+          "changed": false,
+          "input": "저장된 구독",
+          "output": "갱신 완료 응답",
+          "state": [
+            {
+              "name": "구독 상태",
+              "value": "활성"
+            },
+            {
+              "name": "결제",
+              "value": "완료"
+            },
+            {
+              "name": "만료일",
+              "value": "새 만료일"
+            }
+          ],
+          "sources": [
+            {
+              "path": "src/renewal.ts",
+              "side": "head",
+              "start": 64,
+              "end": 66,
+              "excerpt": "return { status: \"renewed\", expiresAt };"
+            }
+          ],
+          "before": "",
+          "after": ""
+        },
+        {
+          "id": "declined",
+          "title": "기존 상태 유지",
+          "description": "결제 실패 응답을 반환합니다. 만료일 저장 단계는 실행하지 않습니다.",
+          "changed": false,
+          "input": "결제 오류",
+          "output": "갱신 실패 응답",
+          "state": [
+            {
+              "name": "구독 상태",
+              "value": "활성"
+            },
+            {
+              "name": "결제",
+              "value": "실패"
+            },
+            {
+              "name": "만료일",
+              "value": "기존 만료일"
+            }
+          ],
+          "sources": [
+            {
+              "path": "src/renewal.ts",
+              "side": "head",
+              "start": 49,
+              "end": 50,
+              "excerpt": "return paymentFailed(error);"
+            }
+          ],
+          "before": "",
+          "after": ""
+        },
+        {
+          "id": "reconcile",
+          "title": "결제만 완료",
+          "description": "저장 실패 응답을 반환합니다. 결제 후 처리 방식은 추가 확인이 필요합니다.",
+          "changed": true,
+          "input": "결제 성공 · 저장 오류",
+          "output": "저장 실패 응답",
+          "state": [
+            {
+              "name": "구독 상태",
+              "value": "활성"
+            },
+            {
+              "name": "결제",
+              "value": "완료"
+            },
+            {
+              "name": "만료일",
+              "value": "기존 만료일"
+            }
+          ],
+          "sources": [
+            {
+              "path": "src/renewal.ts",
+              "side": "head",
+              "start": 58,
+              "end": 59,
+              "excerpt": "return storageFailed(error);"
+            }
+          ],
+          "before": "",
+          "after": ""
+        }
+      ],
+      "edges": [
+        {
+          "to": "check",
+          "label": "요청 전달",
+          "kind": "normal",
+          "sources": [
+            {
+              "path": "src/renewal.ts",
+              "side": "head",
+              "start": 27,
+              "end": 27
+            }
+          ],
+          "from": "request"
+        },
+        {
+          "to": "charge",
+          "label": "갱신 가능",
+          "kind": "normal",
+          "sources": [
+            {
+              "path": "src/renewal.ts",
+              "side": "head",
+              "start": 39,
+              "end": 39
+            }
+          ],
+          "from": "check"
+        },
+        {
+          "to": "save",
+          "label": "결제 성공",
+          "kind": "normal",
+          "sources": [
+            {
+              "path": "src/renewal.ts",
+              "side": "head",
+              "start": 48,
+              "end": 48
+            }
+          ],
+          "from": "charge"
+        },
+        {
+          "to": "declined",
+          "label": "결제 실패",
+          "kind": "failure",
+          "sources": [
+            {
+              "path": "src/renewal.ts",
+              "side": "head",
+              "start": 50,
+              "end": 50
+            }
+          ],
+          "from": "charge"
+        },
+        {
+          "to": "result",
+          "label": "저장 성공",
+          "kind": "normal",
+          "sources": [
+            {
+              "path": "src/renewal.ts",
+              "side": "head",
+              "start": 57,
+              "end": 57
+            }
+          ],
+          "from": "save"
+        },
+        {
+          "to": "reconcile",
+          "label": "저장 실패",
+          "kind": "failure",
+          "sources": [
+            {
+              "path": "src/renewal.ts",
+              "side": "head",
+              "start": 59,
+              "end": 59
+            }
+          ],
+          "from": "save"
+        }
+      ],
+      "findings": [
+        {
+          "id": "after-payment",
+          "nodeId": "save",
+          "kind": "question",
+          "title": "결제 후 저장이 실패하면?",
+          "condition": "결제 성공 후 DB 저장 실패",
+          "behavior": "오류를 반환하며 결제만 완료된 상태가 남을 수 있습니다.",
+          "impact": "재시도에서 이전 결제를 식별하는지, 보상 처리가 있는지 확인이 필요합니다.",
+          "sources": [
+            {
+              "path": "src/renewal.ts",
+              "side": "head",
+              "start": 46,
+              "end": 59
+            }
+          ]
+        }
+      ],
+      "scenarios": [
+        {
+          "condition": "결제 성공 · 저장 성공",
+          "result": "새 만료일 반환",
+          "assessment": "예시 코드에서 확인",
+          "sources": [
+            {
+              "path": "src/renewal.ts",
+              "side": "head",
+              "start": 54,
+              "end": 66
+            }
+          ]
+        },
+        {
+          "condition": "결제 실패",
+          "result": "기존 만료일 유지 · 오류 반환",
+          "assessment": "예시 코드에서 확인",
+          "sources": [
+            {
+              "path": "src/renewal.ts",
+              "side": "head",
+              "start": 46,
+              "end": 50
+            }
+          ]
+        },
+        {
+          "condition": "결제 성공 · 저장 실패",
+          "result": "결제만 완료 · 저장 오류 반환",
+          "assessment": "보상·재시도 정책 확인 필요",
+          "sources": [
+            {
+              "path": "src/renewal.ts",
+              "side": "head",
+              "start": 54,
+              "end": 59
+            }
+          ]
+        }
+      ],
+      "limitations": [
+        "갱신 불가능한 구독의 세부 응답은 이 예제에서 다루지 않았습니다.",
+        "외부 결제 서비스의 중복 방지·보상 처리는 확인하지 못했습니다."
+      ]
+    },
+    {
+      "id": "notification",
+      "title": "갱신 알림",
+      "status": "reviewed",
+      "entry": "event",
+      "summary": "저장 완료 이벤트를 받아 갱신 안내를 발송합니다.",
+      "nodes": [
+        {
+          "id": "event",
+          "title": "이벤트 수신",
+          "description": "저장 완료 이벤트를 받습니다.",
+          "changed": false,
+          "input": "갱신 완료 이벤트",
+          "output": "알림 작업",
+          "state": [
+            {
+              "name": "알림",
+              "value": "대기"
+            }
+          ],
+          "sources": [
+            {
+              "path": "src/notice.ts",
+              "side": "head",
+              "start": 12,
+              "end": 13,
+              "excerpt": "const event = await receive();"
+            }
+          ],
+          "before": "",
+          "after": ""
+        },
+        {
+          "id": "send",
+          "title": "알림 발송",
+          "description": "저장된 만료일로 안내 메시지를 구성합니다.",
+          "changed": true,
+          "input": "새 만료일",
+          "output": "갱신 안내",
+          "state": [
+            {
+              "name": "알림",
+              "value": "발송 요청"
+            }
+          ],
+          "sources": [
+            {
+              "path": "src/notice.ts",
+              "side": "head",
+              "start": 18,
+              "end": 20,
+              "excerpt": "await notify(event.expiresAt);"
+            }
+          ],
+          "before": "기존 만료일을 표시했습니다.",
+          "after": "저장 완료된 새 만료일을 표시합니다."
+        }
+      ],
+      "edges": [
+        {
+          "from": "event",
+          "to": "send",
+          "label": "갱신 완료 이벤트",
+          "kind": "normal",
+          "sources": [
+            {
+              "path": "src/notice.ts",
+              "side": "head",
+              "start": 12,
+              "end": 20
+            }
+          ]
+        }
+      ],
+      "findings": [],
+      "scenarios": [
+        {
+          "condition": "갱신 완료 이벤트",
+          "result": "새 만료일로 안내",
+          "assessment": "예시 흐름 확인",
+          "sources": [
+            {
+              "path": "src/notice.ts",
+              "side": "head",
+              "start": 12,
+              "end": 20
+            }
+          ]
+        }
+      ],
+      "limitations": [
+        "이 예제는 이벤트 수신부터 발송 요청까지를 대상으로 합니다."
+      ]
+    },
+    {
+      "id": "retry",
+      "title": "실패 후 재시도",
+      "status": "unread",
+      "entry": null,
+      "summary": "실패한 갱신 요청을 다시 처리하는 경로입니다.",
+      "nodes": [],
+      "edges": [],
+      "findings": [],
+      "scenarios": [],
+      "limitations": [
+        "재시도 작업의 소스가 제공되지 않아 확인하지 못했습니다."
+      ]
+    }
+  ]
+}

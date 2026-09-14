@@ -1,0 +1,41 @@
+name: Bug report
+description: A walkthrough that was wrong, a command that failed, or a viewer that did not render.
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: "`git -C ~/.claude/skills/explain-pr log -1 --oneline` (or the release tag)"
+    validations:
+      required: true
+  - type: dropdown
+    id: agent
+    attributes:
+      label: Agent
+      options: [Claude Code, Codex, Other]
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: OS, Node version, gh version
+      placeholder: "macOS 15 · Node 22.14 · gh 2.70"
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Where it went wrong
+      options: [collect, triage, trace / source, author (report.json), validate / verify-sources, render, viewer (browser), other]
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: What you ran and what happened
+      description: The PR (or "private"), the exact command or prompt, the error text. Redact secrets and customer data; do not paste real PR content you cannot share.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected

@@ -1,0 +1,128 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate skill structure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Syntax-check scripts and viewer source
+        run: find scripts src -type f \( -name '*.mjs' -o -name '*.js' \) -print0 | xargs -0 -n1 node --check
+      - name: SKILL.md frontmatter, links, examples, templates
+        run: EXPLAIN_PR_SKIP_DIRNAME=1 node scripts/validate-skill.mjs
+
+  test:
+    name: Tests (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22', '24']
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: node --test tests/*.test.mjs
+
+  viewer-in-sync:
+    name: Committed viewer templates match the source
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - name: Fail if assets/ drifted from src/
+        run: |
+          git status --porcelain assets/
+          git diff --stat --exit-code assets/ || { echo "::error::assets/viewer*.html do not match src/. Run 'npm run build' and commit the result."; exit 1; }
+
+  browser:
+    name: Rendered reports work in real Chrome
+    runs-on: ubuntu-latest
+    needs: [validate]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Provision a known Chrome runtime
+        id: chrome
+        uses: browser-actions/setup-chrome@v2
+        with:
+          chrome-version: stable
+          install-dependencies: true
+      - name: Render demos (lite ko, lite en, 3D en)
+        run: |
+          mkdir -p out
+          node scripts/explain-pr.mjs demo out/lite-ko.html
+          node scripts/explain-pr.mjs demo out/lite-en.html --lang en
+          node scripts/explain-pr.mjs demo out/full-en.html --lang en --3d
+      - name: Check the DOM the viewer actually produced
+        env:
+          EXPLAIN_PR_CHROME: ${{ steps.chrome.outputs.chrome-path }}
+          EXPLAIN_PR_CHROME_NO_SANDBOX: '1'
+        run: |
+          node scripts/check-rendered.mjs out/lite-ko.html --lang ko --3d no --screenshot out/lite-ko.png
+          node scripts/check-rendered.mjs out/lite-en.html --lang en --3d no --screenshot out/lite-en.png
+          node scripts/check-rendered.mjs out/full-en.html --lang en --3d yes --screenshot out/full-en.png
+      - name: Upload screenshots for visual review
+        uses: actions/upload-artifact@v4
+        with:
+          name: rendered-demos
+          path: out/*.png
+          retention-days: 14
+
+  install-smoke:
+    name: Fresh install works without npm (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: [validate]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+      - name: Install the way a user would (clone into the skills folder)
+        run: |
+          mkdir -p "$HOME/.claude/skills"
+          git clone --depth 1 . "$HOME/.claude/skills/explain-pr"
+          test -f "$HOME/.claude/skills/explain-pr/SKILL.md"
+          test ! -d "$HOME/.claude/skills/explain-pr/node_modules"
+      - name: Render demos and validate examples from the installed copy
+        run: |
+          S="$HOME/.claude/skills/explain-pr/scripts"
+          node "$S/explain-pr.mjs" validate "$HOME/.claude/skills/explain-pr/examples/minimal.json"
+          node "$S/explain-pr.mjs" demo "$RUNNER_TEMP/demo-lite.html"
+          node "$S/explain-pr.mjs" demo "$RUNNER_TEMP/demo-3d.html" --3d --lang en --md
+          code=0; node "$S/verify-sources.mjs" "$HOME/.claude/skills/explain-pr/examples/demo.json" >/dev/null || code=$?; test "$code" -eq 2   # sample reports are not verification targets
+          grep -q '"lang":"en"' "$RUNNER_TEMP/demo-3d.html"
+          ! grep -q WebGLRenderer "$RUNNER_TEMP/demo-lite.html"
+          grep -q WebGLRenderer "$RUNNER_TEMP/demo-3d.html"
+          test -f "$RUNNER_TEMP/demo-3d.md"
+      - name: Installed skill validates in place (name matches directory)
+        run: node "$HOME/.claude/skills/explain-pr/scripts/validate-skill.mjs" "$HOME/.claude/skills/explain-pr"

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Explain PR"
+  short_description: "Walk a PR's service flow step by step, every step pinned to code evidence"
+  default_prompt: "$explain-pr Explain this PR's service logic as an HTML walkthrough with code evidence and coverage; add 'with 3d' for the 3D follow mode."

@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "sample": true,
+  "lang": "ko",
+  "pr": {"url": "https://github.com/acme/billing/pull/7", "title": "예시: 최소 리포트", "repo": "acme/billing", "number": 7,
+         "base": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+  "summary": "요청을 검증한 뒤 저장합니다.",
+  "limitations": ["예시 데이터입니다."],
+  "tests": {"status": "not-run", "note": "테스트를 읽기만 했습니다."},
+  "flows": [
+    {
+      "id": "create", "title": "요청 생성", "status": "partial", "entry": "validate",
+      "summary": "입력 검증에서 저장까지.",
+      "nodes": [
+        {"id": "validate", "title": "입력 검증", "description": "본문을 검증합니다.", "changed": true,
+         "input": "요청 본문", "output": "검증된 본문", "before": "공백만 있어도 통과", "after": "공백만 있으면 400",
+         "state": [{"name": "본문", "value": "검증 전"}],
+         "sources": [{"path": "src/dto.ts", "side": "head", "start": 12, "end": 15, "excerpt": "return typeof raw === 'string' ? raw.trim() : raw;"}]},
+        {"id": "save", "title": "저장", "description": "검증된 본문을 저장합니다.", "changed": false,
+         "input": "검증된 본문", "output": "저장된 요청", "state": [{"name": "본문", "value": "저장됨"}],
+         "sources": [{"path": "src/service.ts", "side": "head", "start": 40, "end": 44}]},
+        {"id": "reject", "title": "400 응답", "description": "검증 실패를 돌려줍니다.", "changed": false,
+         "input": "검증 오류", "output": "400", "state": [], "sources": [{"path": "src/dto.ts", "side": "head", "start": 20, "end": 22}]}
+      ],
+      "edges": [
+        {"from": "validate", "to": "save", "label": "문자열", "kind": "normal", "sources": [{"path": "src/dto.ts", "side": "head", "start": 14, "end": 14}]},
+        {"from": "validate", "to": "reject", "label": "비문자열 또는 공백", "kind": "failure", "sources": [{"path": "src/dto.ts", "side": "head", "start": 14, "end": 14}]}
+      ],
+      "findings": [
+        {"id": "existing-rows", "nodeId": "save", "kind": "question", "title": "기존 행 정리 여부",
+         "condition": "수정 전에 저장된 잘못된 행", "behavior": "이 PR은 건드리지 않음", "impact": "이력에 그대로 남음",
+         "sources": [{"path": "src/service.ts", "side": "head", "start": 40, "end": 44}]}
+      ],
+      "scenarios": [
+        {"condition": "본문이 공백만", "result": "400", "assessment": "코드 확인", "sources": [{"path": "src/dto.ts", "side": "head", "start": 12, "end": 15}]}
+      ],
+      "limitations": ["저장 이후 알림 경로는 읽지 않았습니다."]
+    },
+    {"id": "notify", "title": "알림", "status": "unread", "entry": null, "summary": "알림 발송.", "nodes": [], "edges": [], "findings": [], "scenarios": [], "limitations": ["예산 초과로 읽지 않음"]}
+  ]
+}
