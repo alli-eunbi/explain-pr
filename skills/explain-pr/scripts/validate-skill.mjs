@@ -7,10 +7,10 @@ import {fileURLToPath} from 'node:url';
 import {validateReport} from './explain-pr.mjs';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
-const problems=[];
-const check=(ok,message)=>{if(!ok) problems.push(message);};
 
 export async function validateSkill(dir=root) {
+  const problems=[]; // per call, so repeated validations never inherit earlier findings
+  const check=(ok,message)=>{if(!ok) problems.push(message);};
   const text=(await readFile(join(dir,'SKILL.md'),'utf8')).replace(/\r\n/g,'\n'); // tolerate CRLF checkouts
   const fm=text.match(/^---\n([\s\S]*?)\n---\n/);
   check(fm,'SKILL.md must start with YAML frontmatter');
