@@ -22,7 +22,22 @@ It does not replace code review or a merge decision. Its only job is to make "wh
 
 ## Quick start
 
-This repository is a plugin for both agents.
+One command for any agent, using the [`skills`](https://skills.sh) CLI:
+
+```bash
+npx skills add alli-eunbi/explain-pr -g
+```
+
+It clones this repository, finds `skills/explain-pr`, and installs it for the agents you pick (Claude Code, Codex, Cursor, and 60+ others; `-a '*'` for all). Update later with `npx skills update`.
+
+```
+/explain-pr https://github.com/<owner>/<repo>/pull/<N>      # Claude Code
+$explain-pr https://github.com/<owner>/<repo>/pull/<N>      # Codex
+```
+
+### Or install as a plugin
+
+This repository is also a plugin for both agents.
 
 **Claude Code**
 
@@ -61,9 +76,8 @@ Other options:
 | Method | Command / steps |
 |---|---|
 | Release archive (no git) | Download `explain-pr.zip` from [Releases](https://github.com/alli-eunbi/explain-pr/releases). The unzipped folder is a plugin for both agents (`claude --plugin-dir explain-pr.zip` works too); its `skills/explain-pr` is the plain skill |
-| `skills` CLI | `npx skills add alli-eunbi/explain-pr -g` |
 
-Updates: `/plugin marketplace update explain-pr` (Claude Code), `codex plugin marketplace upgrade explain-pr` (Codex), `git pull` for clones.
+Updates: `npx skills update` (skills CLI), `/plugin marketplace update explain-pr` (Claude Code plugin), `codex plugin marketplace upgrade explain-pr` (Codex plugin), `git pull` for clones.
 
 **Requirements**
 
