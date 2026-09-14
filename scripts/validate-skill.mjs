@@ -28,7 +28,7 @@ export async function validateSkill(dir=root) {
       try {await stat(join(dir,target));} catch {problems.push(`SKILL.md links to a missing file: ${target}`);}
     }
   }
-  for(const example of ['examples/demo.json','examples/minimal.json']) {
+  for(const example of ['examples/demo.json','examples/demo.en.json','examples/minimal.json']) {
     try {const report=JSON.parse(await readFile(join(dir,example),'utf8')); validateReport(report); check(report.sample===true,`${example} must be marked sample:true`);}
     catch(error) {problems.push(`${example}: ${error.message}`);}
   }

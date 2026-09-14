@@ -248,3 +248,12 @@ test('validate-skill accepts the repository and reports broken frontmatter', asy
     const problems=await validateSkill(dir); assert.ok(problems.some(p=>/lowercase/.test(p))); assert.ok(problems.some(p=>/XML/.test(p))); assert.ok(problems.some(p=>/missing file/.test(p)));
   } finally {await rm(dir,{recursive:true,force:true});}
 });
+test('demo --lang en uses the English sample report', async () => {
+  const dir=await mkdtemp(join(tmpdir(),'explain-demo-en-')), script=fileURLToPath(new URL('../scripts/explain-pr.mjs',import.meta.url));
+  try {
+    const r=spawnSync(process.execPath,[script,'demo',join(dir,'en.html'),'--lang','en'],{encoding:'utf8'}); assert.equal(r.status,0,r.stderr);
+    const html=await readFile(join(dir,'en.html'),'utf8'); assert.ok(html.includes('Subscription renewal logic change')); assert.ok(!/"title":"[^"]*[\uac00-\ud7a3]/.test(html));
+    const k=spawnSync(process.execPath,[script,'demo',join(dir,'ko.html')],{encoding:'utf8'}); assert.equal(k.status,0,k.stderr);
+    assert.ok((await readFile(join(dir,'ko.html'),'utf8')).includes('\uad6c\ub3c5 \uac31\uc2e0 \ub85c\uc9c1 \ubcc0\uacbd'));
+  } finally {await rm(dir,{recursive:true,force:true});}
+});
