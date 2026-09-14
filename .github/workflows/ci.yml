@@ -85,7 +85,7 @@ jobs:
           node skills/explain-pr/scripts/check-rendered.mjs out/lite-en.html --lang en --3d no --screenshot out/lite-en.png
           node skills/explain-pr/scripts/check-rendered.mjs out/full-en.html --lang en --3d yes --screenshot out/full-en.png
       - name: Upload screenshots for visual review
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rendered-demos
           path: out/*.png
