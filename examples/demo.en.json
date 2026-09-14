@@ -1,0 +1,522 @@
+{
+ "version": 1,
+ "sample": true,
+ "pr": {
+  "url": "https://github.com/acme/billing/pull/248",
+  "title": "Subscription renewal logic change",
+  "repo": "acme/billing",
+  "number": 248,
+  "base": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+ },
+ "summary": "Charges the renewal first, then extends the expiry date of subscriptions whose payment succeeded.",
+ "limitations": [
+  "Interactive demo built from a fictional PR and code. Not a review of a real service.",
+  "The 3D walk and state values are illustrative; nothing is requested or charged."
+ ],
+ "tests": {
+  "status": "not-run",
+  "note": "Sample data. No repository tests were executed."
+ },
+ "flows": [
+  {
+   "id": "renewal",
+   "title": "Subscription renewal",
+   "status": "partial",
+   "entry": "request",
+   "summary": "From payment to persistence, one step at a time.",
+   "nodes": [
+    {
+     "id": "request",
+     "title": "Renewal request",
+     "description": "Receives a renewal request for a subscription ID.",
+     "changed": false,
+     "input": "Subscription ID",
+     "output": "Renewal request",
+     "state": [
+      {
+       "name": "Subscription status",
+       "value": "active"
+      },
+      {
+       "name": "Payment",
+       "value": "not started"
+      },
+      {
+       "name": "Expiry date",
+       "value": "current expiry"
+      }
+     ],
+     "sources": [
+      {
+       "path": "src/renewal.ts",
+       "side": "head",
+       "start": 24,
+       "end": 27,
+       "excerpt": "async function renew(subscriptionId) {\n  const subscription = await load(subscriptionId);"
+      }
+     ],
+     "before": "",
+     "after": ""
+    },
+    {
+     "id": "check",
+     "title": "Status check",
+     "description": "Checks that the subscription is active and due for renewal.",
+     "changed": false,
+     "input": "Subscription record",
+     "output": "Eligible for renewal?",
+     "state": [
+      {
+       "name": "Subscription status",
+       "value": "active"
+      },
+      {
+       "name": "Payment",
+       "value": "not started"
+      },
+      {
+       "name": "Expiry date",
+       "value": "current expiry"
+      }
+     ],
+     "sources": [
+      {
+       "path": "src/renewal.ts",
+       "side": "head",
+       "start": 34,
+       "end": 39,
+       "excerpt": "if (!canRenew(subscription)) return;"
+      }
+     ],
+     "before": "",
+     "after": ""
+    },
+    {
+     "id": "charge",
+     "title": "Charge payment",
+     "description": "Requests the external payment. On success, moves on to saving the expiry date.",
+     "changed": true,
+     "input": "Subscription record · payment request",
+     "output": "Payment result",
+     "state": [
+      {
+       "name": "Subscription status",
+       "value": "active"
+      },
+      {
+       "name": "Payment",
+       "value": "requesting"
+      },
+      {
+       "name": "Expiry date",
+       "value": "current expiry"
+      }
+     ],
+     "sources": [
+      {
+       "path": "src/renewal.ts",
+       "side": "head",
+       "start": 46,
+       "end": 50,
+       "excerpt": "try {\n  await charge(subscription);\n} catch (error) {\n  return paymentFailed(error);\n}"
+      }
+     ],
+     "before": "Extended the expiry date, then requested payment.",
+     "after": "Requests payment first, then extends the expiry date."
+    },
+    {
+     "id": "save",
+     "title": "Save expiry date",
+     "description": "After a successful payment, computes and saves the next expiry date.",
+     "changed": true,
+     "input": "Payment success · current expiry",
+     "output": "new expiry",
+     "state": [
+      {
+       "name": "Subscription status",
+       "value": "active"
+      },
+      {
+       "name": "Payment",
+       "value": "done"
+      },
+      {
+       "name": "Expiry date",
+       "value": "not saved yet"
+      }
+     ],
+     "sources": [
+      {
+       "path": "src/renewal.ts",
+       "side": "head",
+       "start": 54,
+       "end": 59,
+       "excerpt": "const expiresAt = nextExpiry(subscription);\ntry {\n  await saveExpiry(expiresAt);\n} catch (error) {\n  return storageFailed(error);\n}"
+      }
+     ],
+     "before": "Saved the expiry date before charging.",
+     "after": "Saves the expiry date only after the payment succeeds."
+    },
+    {
+     "id": "result",
+     "title": "Return result",
+     "description": "Returns the subscription with the new expiry date applied.",
+     "changed": false,
+     "input": "Saved subscription",
+     "output": "Renewal completed response",
+     "state": [
+      {
+       "name": "Subscription status",
+       "value": "active"
+      },
+      {
+       "name": "Payment",
+       "value": "done"
+      },
+      {
+       "name": "Expiry date",
+       "value": "new expiry"
+      }
+     ],
+     "sources": [
+      {
+       "path": "src/renewal.ts",
+       "side": "head",
+       "start": 64,
+       "end": 66,
+       "excerpt": "return { status: \"renewed\", expiresAt };"
+      }
+     ],
+     "before": "",
+     "after": ""
+    },
+    {
+     "id": "declined",
+     "title": "Keep current state",
+     "description": "Returns a payment-failed response. The save step does not run.",
+     "changed": false,
+     "input": "Payment error",
+     "output": "Renewal failed response",
+     "state": [
+      {
+       "name": "Subscription status",
+       "value": "active"
+      },
+      {
+       "name": "Payment",
+       "value": "failed"
+      },
+      {
+       "name": "Expiry date",
+       "value": "current expiry"
+      }
+     ],
+     "sources": [
+      {
+       "path": "src/renewal.ts",
+       "side": "head",
+       "start": 49,
+       "end": 50,
+       "excerpt": "return paymentFailed(error);"
+      }
+     ],
+     "before": "",
+     "after": ""
+    },
+    {
+     "id": "reconcile",
+     "title": "Payment only",
+     "description": "Returns a save-failed response. What happens after a completed payment needs confirmation.",
+     "changed": true,
+     "input": "Payment success · save error",
+     "output": "Save failed response",
+     "state": [
+      {
+       "name": "Subscription status",
+       "value": "active"
+      },
+      {
+       "name": "Payment",
+       "value": "done"
+      },
+      {
+       "name": "Expiry date",
+       "value": "current expiry"
+      }
+     ],
+     "sources": [
+      {
+       "path": "src/renewal.ts",
+       "side": "head",
+       "start": 58,
+       "end": 59,
+       "excerpt": "return storageFailed(error);"
+      }
+     ],
+     "before": "",
+     "after": ""
+    }
+   ],
+   "edges": [
+    {
+     "to": "check",
+     "label": "Request forwarded",
+     "kind": "normal",
+     "sources": [
+      {
+       "path": "src/renewal.ts",
+       "side": "head",
+       "start": 27,
+       "end": 27
+      }
+     ],
+     "from": "request"
+    },
+    {
+     "to": "charge",
+     "label": "Eligible",
+     "kind": "normal",
+     "sources": [
+      {
+       "path": "src/renewal.ts",
+       "side": "head",
+       "start": 39,
+       "end": 39
+      }
+     ],
+     "from": "check"
+    },
+    {
+     "to": "save",
+     "label": "Payment succeeded",
+     "kind": "normal",
+     "sources": [
+      {
+       "path": "src/renewal.ts",
+       "side": "head",
+       "start": 48,
+       "end": 48
+      }
+     ],
+     "from": "charge"
+    },
+    {
+     "to": "declined",
+     "label": "Payment failed",
+     "kind": "failure",
+     "sources": [
+      {
+       "path": "src/renewal.ts",
+       "side": "head",
+       "start": 50,
+       "end": 50
+      }
+     ],
+     "from": "charge"
+    },
+    {
+     "to": "result",
+     "label": "Save succeeded",
+     "kind": "normal",
+     "sources": [
+      {
+       "path": "src/renewal.ts",
+       "side": "head",
+       "start": 57,
+       "end": 57
+      }
+     ],
+     "from": "save"
+    },
+    {
+     "to": "reconcile",
+     "label": "Save failed",
+     "kind": "failure",
+     "sources": [
+      {
+       "path": "src/renewal.ts",
+       "side": "head",
+       "start": 59,
+       "end": 59
+      }
+     ],
+     "from": "save"
+    }
+   ],
+   "findings": [
+    {
+     "id": "after-payment",
+     "nodeId": "save",
+     "kind": "question",
+     "title": "What if the save fails after payment?",
+     "condition": "DB save fails after a successful payment",
+     "behavior": "An error is returned and the subscription may be left charged but not extended.",
+     "impact": "Check whether a retry recognizes the earlier charge and whether there is a compensation step.",
+     "sources": [
+      {
+       "path": "src/renewal.ts",
+       "side": "head",
+       "start": 46,
+       "end": 59
+      }
+     ]
+    }
+   ],
+   "scenarios": [
+    {
+     "condition": "Payment succeeded · save succeeded",
+     "result": "New expiry date returned",
+     "assessment": "Confirmed in the sample code",
+     "sources": [
+      {
+       "path": "src/renewal.ts",
+       "side": "head",
+       "start": 54,
+       "end": 66
+      }
+     ]
+    },
+    {
+     "condition": "Payment failed",
+     "result": "Current expiry kept · error returned",
+     "assessment": "Confirmed in the sample code",
+     "sources": [
+      {
+       "path": "src/renewal.ts",
+       "side": "head",
+       "start": 46,
+       "end": 50
+      }
+     ]
+    },
+    {
+     "condition": "Payment succeeded · save failed",
+     "result": "Payment only · save error returned",
+     "assessment": "Compensation and retry policy need confirmation",
+     "sources": [
+      {
+       "path": "src/renewal.ts",
+       "side": "head",
+       "start": 54,
+       "end": 59
+      }
+     ]
+    }
+   ],
+   "limitations": [
+    "The detailed response for ineligible subscriptions is not covered in this example.",
+    "Duplicate prevention and compensation inside the external payment service were not verified."
+   ]
+  },
+  {
+   "id": "notification",
+   "title": "Renewal notification",
+   "status": "reviewed",
+   "entry": "event",
+   "summary": "Consumes the saved event and sends the renewal notice.",
+   "nodes": [
+    {
+     "id": "event",
+     "title": "Receive event",
+     "description": "Receives the saved event.",
+     "changed": false,
+     "input": "Renewal completed event",
+     "output": "Notification job",
+     "state": [
+      {
+       "name": "Notification",
+       "value": "pending"
+      }
+     ],
+     "sources": [
+      {
+       "path": "src/notice.ts",
+       "side": "head",
+       "start": 12,
+       "end": 13,
+       "excerpt": "const event = await receive();"
+      }
+     ],
+     "before": "",
+     "after": ""
+    },
+    {
+     "id": "send",
+     "title": "Send notification",
+     "description": "Builds the notice from the saved expiry date.",
+     "changed": true,
+     "input": "new expiry",
+     "output": "Renewal notice",
+     "state": [
+      {
+       "name": "Notification",
+       "value": "send requested"
+      }
+     ],
+     "sources": [
+      {
+       "path": "src/notice.ts",
+       "side": "head",
+       "start": 18,
+       "end": 20,
+       "excerpt": "await notify(event.expiresAt);"
+      }
+     ],
+     "before": "Showed the old expiry date.",
+     "after": "Shows the newly saved expiry date."
+    }
+   ],
+   "edges": [
+    {
+     "from": "event",
+     "to": "send",
+     "label": "Renewal completed event",
+     "kind": "normal",
+     "sources": [
+      {
+       "path": "src/notice.ts",
+       "side": "head",
+       "start": 12,
+       "end": 20
+      }
+     ]
+    }
+   ],
+   "findings": [],
+   "scenarios": [
+    {
+     "condition": "Renewal completed event",
+     "result": "Notice with the new expiry date",
+     "assessment": "Confirmed in the sample flow",
+     "sources": [
+      {
+       "path": "src/notice.ts",
+       "side": "head",
+       "start": 12,
+       "end": 20
+      }
+     ]
+    }
+   ],
+   "limitations": [
+    "This example covers from receiving the event to requesting the send."
+   ]
+  },
+  {
+   "id": "retry",
+   "title": "Retry after failure",
+   "status": "unread",
+   "entry": null,
+   "summary": "The path that reprocesses a failed renewal request.",
+   "nodes": [],
+   "edges": [],
+   "findings": [],
+   "scenarios": [],
+   "limitations": [
+    "The retry job's source was not provided, so it was not reviewed."
+   ]
+  }
+ ],
+ "lang": "en"
+}

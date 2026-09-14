@@ -303,7 +303,8 @@ async function main(args) {
   if(repo) fail('--repo','only valid with source');
   if(command==='validate'&&rest.length===1&&!force&&!lang&&!markdown&&!threeD) {validateReport(JSON.parse(await readFile(rest[0],'utf8'))); console.log('Report structure valid. Source accuracy and logic are not verified.');return;}
   if((command==='render'&&rest.length===2)||(command==='demo'&&rest.length===1)) {
-    const result=await renderFiles(command==='demo'?join(root,'examples/demo.json'):rest[0],command==='demo'?rest[0]:rest[1],{force,lang,markdown,threeD}); console.log(JSON.stringify(result,null,2));return;
+    const demoFile=lang==='en'?'examples/demo.en.json':'examples/demo.json'; // the sample report exists in both languages
+    const result=await renderFiles(command==='demo'?join(root,demoFile):rest[0],command==='demo'?rest[0]:rest[1],{force,lang,markdown,threeD}); console.log(JSON.stringify(result,null,2));return;
   }
   if(command==='collect'&&rest.length===2&&!force&&!lang&&!markdown&&!threeD) {
     const result=await collectEvidence(rest[0],rest[1]);

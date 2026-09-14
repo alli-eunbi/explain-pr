@@ -156,7 +156,8 @@ explain-pr/
 │   └── build-viewer.mjs     viewer build (development only)
 ├── examples/
 │   ├── minimal.json         the small shape reference the agent reads
-│   └── demo.json            fictional PR for the demo
+│   ├── demo.json            fictional PR for the demo (Korean)
+│   └── demo.en.json         the same demo in English (used by `demo --lang en`)
 ├── assets/
 │   ├── viewer-lite.html     default template (flowchart, ~50 KB)
 │   └── viewer.html          "with 3d" template (flowchart + 3D, bundles three.js, ~600 KB)

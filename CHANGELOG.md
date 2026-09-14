@@ -2,6 +2,7 @@
 
 ## 2.1.0 — 2026-09-14
 
+- English sample report (`examples/demo.en.json`, used by `demo --lang en`); README screenshots are English.
 - Installable as a Claude Code plugin: this repository is its own marketplace (`/plugin marketplace add alli-eunbi/explain-pr`, `/plugin install explain-pr@explain-pr`).
 - Lite viewer (flowchart only, ~50 KB) is the default; `with 3d` renders the full viewer with the 3D follow mode.
 - English UI: viewer strings follow the report's `lang` (`ko`/`en`); `render --lang` is embedded into the data.
