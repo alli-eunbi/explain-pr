@@ -19,9 +19,9 @@ jobs:
         with:
           node-version: '24'
       - name: Syntax-check scripts and viewer source
-        run: find scripts src -type f \( -name '*.mjs' -o -name '*.js' \) -print0 | xargs -0 -n1 node --check
+        run: find skills/explain-pr/scripts tools src -type f \( -name '*.mjs' -o -name '*.js' \) -print0 | xargs -0 -n1 node --check
       - name: SKILL.md frontmatter, links, examples, templates
-        run: EXPLAIN_PR_SKIP_DIRNAME=1 node scripts/validate-skill.mjs
+        run: node skills/explain-pr/scripts/validate-skill.mjs skills/explain-pr
 
   test:
     name: Tests (Node ${{ matrix.node }})
@@ -52,8 +52,8 @@ jobs:
       - run: npm run build
       - name: Fail if assets/ drifted from src/
         run: |
-          git status --porcelain assets/
-          git diff --stat --exit-code assets/ || { echo "::error::assets/viewer*.html do not match src/. Run 'npm run build' and commit the result."; exit 1; }
+          git status --porcelain skills/explain-pr/assets/
+          git diff --stat --exit-code skills/explain-pr/assets/ || { echo "::error::skills/explain-pr/assets/viewer*.html do not match src/. Run 'npm run build' and commit the result."; exit 1; }
 
   browser:
     name: Rendered reports work in real Chrome
@@ -73,17 +73,17 @@ jobs:
       - name: Render demos (lite ko, lite en, 3D en)
         run: |
           mkdir -p out
-          node scripts/explain-pr.mjs demo out/lite-ko.html
-          node scripts/explain-pr.mjs demo out/lite-en.html --lang en
-          node scripts/explain-pr.mjs demo out/full-en.html --lang en --3d
+          node skills/explain-pr/scripts/explain-pr.mjs demo out/lite-ko.html
+          node skills/explain-pr/scripts/explain-pr.mjs demo out/lite-en.html --lang en
+          node skills/explain-pr/scripts/explain-pr.mjs demo out/full-en.html --lang en --3d
       - name: Check the DOM the viewer actually produced
         env:
           EXPLAIN_PR_CHROME: ${{ steps.chrome.outputs.chrome-path }}
           EXPLAIN_PR_CHROME_NO_SANDBOX: '1'
         run: |
-          node scripts/check-rendered.mjs out/lite-ko.html --lang ko --3d no --screenshot out/lite-ko.png
-          node scripts/check-rendered.mjs out/lite-en.html --lang en --3d no --screenshot out/lite-en.png
-          node scripts/check-rendered.mjs out/full-en.html --lang en --3d yes --screenshot out/full-en.png
+          node skills/explain-pr/scripts/check-rendered.mjs out/lite-ko.html --lang ko --3d no --screenshot out/lite-ko.png
+          node skills/explain-pr/scripts/check-rendered.mjs out/lite-en.html --lang en --3d no --screenshot out/lite-en.png
+          node skills/explain-pr/scripts/check-rendered.mjs out/full-en.html --lang en --3d yes --screenshot out/full-en.png
       - name: Upload screenshots for visual review
         uses: actions/upload-artifact@v4
         with:
@@ -107,12 +107,13 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '20'
-      - name: Install the way a user would (clone into the skills folder)
+      - name: Install the way a user would (clone, then link the skill folder)
         run: |
           mkdir -p "$HOME/.claude/skills"
-          git clone --depth 1 . "$HOME/.claude/skills/explain-pr"
+          git clone --depth 1 . "$RUNNER_TEMP/explain-pr-repo"
+          ln -s "$RUNNER_TEMP/explain-pr-repo/skills/explain-pr" "$HOME/.claude/skills/explain-pr"
           test -f "$HOME/.claude/skills/explain-pr/SKILL.md"
-          test ! -d "$HOME/.claude/skills/explain-pr/node_modules"
+          test ! -d "$RUNNER_TEMP/explain-pr-repo/node_modules"
       - name: Render demos and validate examples from the installed copy
         run: |
           S="$HOME/.claude/skills/explain-pr/scripts"
@@ -146,3 +147,26 @@ jobs:
           claude plugin install explain-pr@explain-pr --scope user
           claude plugin list | grep -A2 'explain-pr@explain-pr'
           claude plugin details explain-pr@explain-pr | grep -E 'Skills \(1\)'
+      - name: Codex manifest is valid JSON and points at the skills directory
+        run: node -e "const m=require('./.codex-plugin/plugin.json'); const mk=require('./.agents/plugins/marketplace.json'); if(m.skills!=='./skills/'||mk.plugins[0].source.path!=='./') throw new Error('codex manifest mismatch'); require('fs').accessSync('skills/explain-pr/SKILL.md'); for (const a of [m.interface.composerIcon, m.interface.logo]) require('fs').accessSync(a); console.log('codex manifest ok')"
+
+  codex-plugin:
+    name: Installs as a Codex plugin
+    runs-on: ubuntu-latest
+    needs: [validate]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Install Codex CLI
+        run: npm install -g @openai/codex
+      - name: Add this repository as a marketplace and install the plugin (isolated CODEX_HOME, no login)
+        env:
+          CODEX_HOME: ${{ runner.temp }}/codex-home
+        run: |
+          mkdir -p "$CODEX_HOME"
+          codex plugin marketplace add "$PWD"
+          codex plugin add explain-pr@explain-pr
+          codex plugin list | grep -E 'explain-pr@explain-pr +installed'
+          test -f "$CODEX_HOME"/plugins/cache/explain-pr/explain-pr/*/skills/explain-pr/SKILL.md

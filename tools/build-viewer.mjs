@@ -5,6 +5,7 @@ import {dirname,resolve} from 'node:path';
 import {createHash} from 'node:crypto';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
+const skill=resolve(root,'skills/explain-pr');
 const shell=await readFile(resolve(root,'src/shell.html'),'utf8');
 for(const token of ['__EXPLAIN_PR_DATA__','__EXPLAIN_PR_MARKDOWN__','__EXPLAIN_PR_BUNDLE__']) {
   if(shell.split(token).length!==2)throw new Error(`Expected exactly one ${token}`);
@@ -21,7 +22,7 @@ for(const [name,plugins] of [['viewer.html',[]],['viewer-lite.html',[stubScene]]
   });
   const bundle=result.outputFiles[0].text.replace(/<\/script/gi,'<\\/script');
   const html=shell.replace('__EXPLAIN_PR_BUNDLE__',()=>bundle);
-  await writeFile(resolve(root,'assets',name),html);
+  await writeFile(resolve(skill,'assets',name),html);
   out[name]={bytes:Buffer.byteLength(html),sha256:createHash('sha256').update(html).digest('hex')};
 }
 console.log(JSON.stringify({templates:out,runtime:'bundled offline; rebuilding is only for viewer development'},null,2));

@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 
 let api;
-try { api = await import('../scripts/explain-pr.mjs'); } catch (e) { if (e.code !== 'ERR_MODULE_NOT_FOUND') throw e; }
+try { api = await import('../skills/explain-pr/scripts/explain-pr.mjs'); } catch (e) { if (e.code !== 'ERR_MODULE_NOT_FOUND') throw e; }
 const requireApi = () => { assert.ok(api, 'CLI implementation must exist'); return api; };
 const source = () => ({path:'src/a.ts',side:'head',start:2,end:4});
 const report = () => ({version:1,sample:true,pr:{url:'https://github.com/acme/billing/pull/2',repo:'acme/billing',number:2,base:'a'.repeat(40),head:'b'.repeat(40),title:'Renew'},summary:'Overview',limitations:['External service unread'],tests:{status:'not-run',note:'Read only'},flows:[{id:'renew',title:'Renewal',status:'partial',entry:'start',summary:'Flow summary',nodes:[{id:'start',title:'Request',description:'Receive request',changed:true,input:'ID',output:'Request',before:'Old',after:'New',state:[{name:'status',value:'active'}],sources:[source()]}],edges:[],findings:[{id:'risk',nodeId:'start',kind:'question',title:'Retry',condition:'DB failure',behavior:'Payment remains',impact:'Duplicate risk',sources:[source()]}],scenarios:[{condition:'Valid ID',result:'Request',assessment:'Code read',sources:[source()]}],limitations:['Race untested']}]});
@@ -98,7 +98,7 @@ test('CLI executes through a skill symlink and returns nonzero for invalid repor
   const dir=await mkdtemp(join(tmpdir(),'explain-symlink-'));
   try {
     const link=join(dir,'skill-command.mjs'), input=join(dir,'bad.json');
-    await symlink(fileURLToPath(new URL('../scripts/explain-pr.mjs',import.meta.url)),link);
+    await symlink(fileURLToPath(new URL('../skills/explain-pr/scripts/explain-pr.mjs',import.meta.url)),link);
     await writeFile(input,'{}');
     const result=spawnSync(process.execPath,[link,'validate',input],{encoding:'utf8'});
     assert.equal(result.status,1); assert.match(result.stderr,/version/);
@@ -132,7 +132,7 @@ test('Markdown labels follow lang from the report or the render option; unknown 
   assert.throws(()=>a.renderReport(report(),template,{lang:'de'}),/lang/);
 });
 test('CLI accepts --lang for render and rejects it for validate', async () => {
-  const dir=await mkdtemp(join(tmpdir(),'explain-lang-')), script=fileURLToPath(new URL('../scripts/explain-pr.mjs',import.meta.url));
+  const dir=await mkdtemp(join(tmpdir(),'explain-lang-')), script=fileURLToPath(new URL('../skills/explain-pr/scripts/explain-pr.mjs',import.meta.url));
   try {
     const input=join(dir,'r.json'); await writeFile(input,JSON.stringify(report()));
     const ok=spawnSync(process.execPath,[script,'demo',join(dir,'d.html'),'--lang','en','--md'],{encoding:'utf8'}); assert.equal(ok.status,0,ok.stderr);
@@ -178,7 +178,7 @@ test('collect metadata stays small: no file list, second view keeps only the tip
   } finally {await rm(dir,{recursive:true,force:true});}
 });
 test('the minimal example validates and stays small enough to read whole', async () => {
-  const a=requireApi(), text=await readFile(new URL('../examples/minimal.json',import.meta.url),'utf8');
+  const a=requireApi(), text=await readFile(new URL('../skills/explain-pr/examples/minimal.json',import.meta.url),'utf8');
   a.validateReport(JSON.parse(text)); assert.ok(text.length<3500,`minimal.json is ${text.length} chars (demo.json is ~15000)`);
 });
 test('splitPatch decodes Git quoted UTF-8 and escaped quote paths', () => {
@@ -220,7 +220,7 @@ test('collect rejects incomplete or inconsistent patch evidence before writing',
   } finally {await rm(dir,{recursive:true,force:true});}
 });
 test('render uses the lite viewer by default and the 3D viewer with --3d', async () => {
-  const a=requireApi(), dir=await mkdtemp(join(tmpdir(),'explain-lite-')), root=fileURLToPath(new URL('../',import.meta.url));
+  const a=requireApi(), dir=await mkdtemp(join(tmpdir(),'explain-lite-')), root=fileURLToPath(new URL('../skills/explain-pr/',import.meta.url));
   try {
     const full=await readFile(join(root,a.TEMPLATES.threeD),'utf8'), lite=await readFile(join(root,a.TEMPLATES.lite),'utf8');
     assert.ok(full.includes('WebGLRenderer')); assert.ok(!lite.includes('WebGLRenderer')); assert.ok(lite.length<full.length*0.4,`lite ${lite.length} vs full ${full.length}`);
@@ -237,8 +237,8 @@ test('an explicit --lang reaches the embedded viewer data', () => {
   assert.ok(a.renderReport(report(),template).html.includes('"lang":"ko"'));
 });
 test('validate-skill accepts the repository and reports broken frontmatter', async () => {
-  const {validateSkill}=await import('../scripts/validate-skill.mjs');
-  const root=fileURLToPath(new URL('../',import.meta.url));
+  const {validateSkill}=await import('../skills/explain-pr/scripts/validate-skill.mjs');
+  const root=fileURLToPath(new URL('../skills/explain-pr/',import.meta.url));
   process.env.EXPLAIN_PR_SKIP_DIRNAME='1';
   assert.deepEqual(await validateSkill(root),[]);
   const dir=await mkdtemp(join(tmpdir(),'explain-skill-'));
@@ -249,7 +249,7 @@ test('validate-skill accepts the repository and reports broken frontmatter', asy
   } finally {await rm(dir,{recursive:true,force:true});}
 });
 test('demo --lang en uses the English sample report', async () => {
-  const dir=await mkdtemp(join(tmpdir(),'explain-demo-en-')), script=fileURLToPath(new URL('../scripts/explain-pr.mjs',import.meta.url));
+  const dir=await mkdtemp(join(tmpdir(),'explain-demo-en-')), script=fileURLToPath(new URL('../skills/explain-pr/scripts/explain-pr.mjs',import.meta.url));
   try {
     const r=spawnSync(process.execPath,[script,'demo',join(dir,'en.html'),'--lang','en'],{encoding:'utf8'}); assert.equal(r.status,0,r.stderr);
     const html=await readFile(join(dir,'en.html'),'utf8'); assert.ok(html.includes('Subscription renewal logic change')); assert.ok(!/"title":"[^"]*[\uac00-\ud7a3]/.test(html));

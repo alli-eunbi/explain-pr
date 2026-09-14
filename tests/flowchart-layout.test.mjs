@@ -33,7 +33,7 @@ test('shared sinks, self loops and return edges point at canonical node identity
   assert.equal(result.rows.filter(row=>row.node.id==='error').length,1);
 });
 test('demo flows preserve all original nodes and edges, including unread empty flow',async()=>{
-  const report=JSON.parse(await readFile(new URL('../examples/demo.json',import.meta.url),'utf8'));
+  const report=JSON.parse(await readFile(new URL('../skills/explain-pr/examples/demo.json',import.meta.url),'utf8'));
   for(const flow of report.flows){
     const before=JSON.stringify(flow),result=plan(flow);
     assert.equal(result.rows.length,flow.nodes.length);

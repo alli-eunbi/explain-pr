@@ -6,8 +6,8 @@ import {join} from 'node:path';
 import {execFile,spawnSync} from 'node:child_process';
 import {promisify} from 'node:util';
 import {fileURLToPath} from 'node:url';
-let api; try {api=await import('../scripts/verify-sources.mjs');} catch(e) {if(e.code!=='ERR_MODULE_NOT_FOUND') throw e;}
-const cli=await import('../scripts/explain-pr.mjs');
+let api; try {api=await import('../skills/explain-pr/scripts/verify-sources.mjs');} catch(e) {if(e.code!=='ERR_MODULE_NOT_FOUND') throw e;}
+const cli=await import('../skills/explain-pr/scripts/explain-pr.mjs');
 const requireApi=()=>{assert.ok(api,'source verifier must exist');return api;};
 const exec=promisify(execFile); let directory,base,head;
 const git=async(...args)=>(await exec('git',['-C',directory,...args])).stdout.trim();
@@ -19,7 +19,7 @@ before(async()=>{
 });
 after(async()=>{await rm(directory,{recursive:true,force:true});});
 async function report() {
-  const r=JSON.parse(await readFile(new URL('../examples/demo.json',import.meta.url),'utf8')); r.sample=false; r.pr.base=base;r.pr.head=head;
+  const r=JSON.parse(await readFile(new URL('../skills/explain-pr/examples/demo.json',import.meta.url),'utf8')); r.sample=false; r.pr.base=base;r.pr.head=head;
   r.flows=[{id:'flow',title:'Flow',status:'reviewed',entry:'entry',summary:'Example',limitations:[],nodes:[{id:'entry',title:'Entry',description:'Read',changed:false,input:'input',output:'output',state:[],sources:[{path:'kept.ts',side:'head',start:1,end:2}]}],edges:[],findings:[],scenarios:[]}]; return r;
 }
 test('verifies fixed head and deleted base lines without changing checkout',async()=>{
@@ -49,7 +49,7 @@ test('remote directory metadata, large files, symlinks and malformed contents fa
   }
 });
 test('source CLI uses exit 0 for real ranges, 1 for invalid ranges, and 2 for samples',async()=>{
-  requireApi();const file=join(directory,'report.json'),script=fileURLToPath(new URL('../scripts/verify-sources.mjs',import.meta.url));
+  requireApi();const file=join(directory,'report.json'),script=fileURLToPath(new URL('../skills/explain-pr/scripts/verify-sources.mjs',import.meta.url));
   for(const [kind,code] of [['valid',0],['invalid',1],['sample',2]]) {
     const r=await report();if(kind==='sample')r.sample=true;if(kind==='invalid')r.flows[0].nodes[0].sources[0].end=3;await writeFile(file,JSON.stringify(r));
     const result=spawnSync(process.execPath,[script,file,'--repo',directory],{encoding:'utf8'});assert.equal(result.status,code,result.stderr);assert.ok(JSON.parse(result.stdout).status);
@@ -89,6 +89,6 @@ test('source prints a numbered slice of a pinned file and refuses bad ranges and
   await assert.rejects(cli.sourceSlice(evidence,'head','../kept.ts','1',{repo:directory}),/path/);
   await assert.rejects(cli.sourceSlice(evidence,'head','binary.bin','1',{repo:directory}),/binary/);
   await assert.rejects(cli.sourceSlice(evidence,'side','kept.ts','1',{repo:directory}),/side/);
-  const script=fileURLToPath(new URL('../scripts/explain-pr.mjs',import.meta.url));
+  const script=fileURLToPath(new URL('../skills/explain-pr/scripts/explain-pr.mjs',import.meta.url));
   const result=spawnSync(process.execPath,[script,'source',evidence,'head','kept.ts','2-2','--repo',directory],{encoding:'utf8'}); assert.equal(result.status,0,result.stderr); assert.match(result.stdout,/2│ second/);
 });

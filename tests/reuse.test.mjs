@@ -5,10 +5,10 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
-import {renderFiles} from '../scripts/explain-pr.mjs';
+import {renderFiles} from '../skills/explain-pr/scripts/explain-pr.mjs';
 
 test('a frozen offline viewer renders distinct reports without a build or template mutation',async()=>{
- const root=fileURLToPath(new URL('../',import.meta.url));
+ const root=fileURLToPath(new URL('../skills/explain-pr/',import.meta.url));
  const template=join(root,'assets/viewer.html');
  const before=await readFile(template);
  // The shipped viewer is already compiled, not a request to generate a screen.

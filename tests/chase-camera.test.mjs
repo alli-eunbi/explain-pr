@@ -25,7 +25,7 @@ test('follow target translates with the current platform without depending on ro
 });
 test('demo current platform, robot and both outgoing platforms fit desktop and mobile projections', async () => {
   assert.equal(typeof scene.layout, 'function');
-  const report=JSON.parse(await readFile(new URL('../examples/demo.json',import.meta.url),'utf8'));
+  const report=JSON.parse(await readFile(new URL('../skills/explain-pr/examples/demo.json',import.meta.url),'utf8'));
   const flow=report.flows[0],{positions}=scene.layout(flow),current=positions.get('charge');
   const target=new THREE.Vector3().copy(camera.followCameraTarget(current));
   const distance=camera.FOLLOW_VIEW_HEIGHT/(2*Math.tan(THREE.MathUtils.degToRad(camera.FOLLOW_FOV/2)));
